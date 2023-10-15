@@ -1,19 +1,28 @@
-#include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h> // only include this one in the source file with main()!
+#include "Game.h"
+
+Game* game = nullptr;
+
+//Window configuration
+const char* TITLE = "Game SDL";
+const unsigned int XPOS = SDL_WINDOWPOS_CENTERED;
+const unsigned int YPOS = SDL_WINDOWPOS_CENTERED;
+const int WIDTH = 800;
+const int HEIGHT = 600;
+const bool FULLSCREAN = false;
 
 int main(int argc, char* argv[])
 {
-    const int WIDTH = 640;
-    const int HEIGHT = 480;
-    SDL_Window* window = NULL;
-    SDL_Renderer* renderer = NULL;
+    game = new Game();
+    game->Init(TITLE, XPOS, YPOS, WIDTH, HEIGHT, FULLSCREAN);
 
-    SDL_Init(SDL_INIT_VIDEO);
-    window = SDL_CreateWindow("Hello SDL", WIDTH, HEIGHT, 0);
-    renderer = SDL_CreateRenderer(window, NULL, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    while (game->running()) {
+        game->Event();
+        game->Update();
+        game->Render();
+    }
 
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
+    game->Quit();
+
     return 0;
 }
