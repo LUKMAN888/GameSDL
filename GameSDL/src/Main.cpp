@@ -9,12 +9,12 @@ const unsigned int XPOS = SDL_WINDOWPOS_CENTERED;
 const unsigned int YPOS = SDL_WINDOWPOS_CENTERED;
 const int WIDTH = 800;
 const int HEIGHT = 600;
-const bool FULLSCREAN = false;
+const bool FULLSCREEN = false;
 
 int main(int argc, char* argv[])
 {
     game = new Game();
-    game->Init(TITLE, XPOS, YPOS, WIDTH, HEIGHT, FULLSCREAN);
+    game->Init(TITLE, XPOS, YPOS, WIDTH, HEIGHT, FULLSCREEN);
 
     while (game->running()) {
         game->Event();
