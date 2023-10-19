@@ -1,6 +1,6 @@
 #include "Game.h"
 
-// TO BE REMOVED
+// ----- TO BE REMOVED -------
 const float vertices[] = {
 	-0.5f, -0.5f, 0.0f,
 	 0.5f, -0.5f, 0.0f,
@@ -11,6 +11,8 @@ GLuint basic_shader_program;
 
 unsigned int VBO;
 unsigned int VAO;
+
+// ---------------------------
 
 Game::Game()
 {
