@@ -12,7 +12,22 @@ GLuint basic_shader_program;
 unsigned int VBO;
 unsigned int VAO;
 
+
+glm::mat4 projection_matrix;
+glm::mat4 transformation_matrix = glm::mat4(1.0f);
+const float NEAR = 0.1f;
+const float FAR = 400.0f;
+
+float lastX = 0, lastY = 0;
+float posX = 0, posY = 0;
+bool first_mouse = true;
+
 // ---------------------------
+
+Game::Game(const char* title, int x, int y, int width, int height, bool fullscreen)
+{
+	Init(title, x, y, width, height, fullscreen);
+}
 
 Game::Game()
 {
@@ -26,7 +41,7 @@ Game::~Game()
 
 void Game::Init(const char* title, int x, int y, int width, int height, bool fullscreen)
 {
-	isRunning = true;
+	is_running = true;
 
 	int flags = 0;
 	if (fullscreen)
@@ -43,17 +58,9 @@ void Game::Init(const char* title, int x, int y, int width, int height, bool ful
 		if (!window) 
 		{
 			std::cout << "Window failed to be created" << std::endl;
-			isRunning = false;
+			is_running = false;
 			return;
 		}
-		renderer = SDL_CreateRenderer(window, NULL, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-		if (!renderer)
-		{
-			std::cout << "Renderer failed to be created" << std::endl;
-			isRunning = false;
-			return;
-		}
-		SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 4);
@@ -61,15 +68,19 @@ void Game::Init(const char* title, int x, int y, int width, int height, bool ful
 		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
-		glContext = SDL_GL_CreateContext(window);
+		gl_context = SDL_GL_CreateContext(window);
 
-		if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
+		if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) 
+		{
 			printf("Failed to initialize OpenGL context\n");
-			isRunning = false;
+			is_running = false;
 		}
 		glEnable(GL_DEPTH_TEST);
 		glInfo();
 		initBasicProgram();
+		initKeyboardState();
+
+		projection_matrix = glm::perspective(glm::radians(60.0f), (float)width / (float)height, NEAR, FAR);
 	}
 }
 
@@ -81,7 +92,16 @@ void Game::Event()
 		switch (event.type)
 		{
 		case SDL_EVENT_QUIT:
-			isRunning = false;
+			is_running = false;
+			break;
+		case SDL_EVENT_MOUSE_MOTION:
+			mouseMoveEvent(event.motion);
+			break;
+		case SDL_EVENT_KEY_DOWN:
+			processKeyEvent(event.key.keysym.sym, true);
+			break;
+		case SDL_EVENT_KEY_UP:
+			processKeyEvent(event.key.keysym.sym, false);
 			break;
 		default:
 			break;
@@ -91,20 +111,50 @@ void Game::Event()
 
 void Game::Update()
 {
-
+	glm::vec2 dir = glm::vec2(0,0);
+	//Check what keys are down
+	for (std::map<Uint8, bool>::iterator it = keyboard_state.begin(); it != keyboard_state.end(); it++) 
+	{
+		if (it->second)
+		{
+			switch (it->first)
+			{
+			case SDLK_w:
+				dir.x += 1;
+				break;
+			case SDLK_s:
+				dir.x += -1;
+				break;
+			case SDLK_d:
+				dir.y += 1;
+				break;
+			case SDLK_a:
+				dir.y += -1;
+				break;
+			default:
+				break;
+			}
+		}
+	}
+	if (glm::length(dir) > 0)
+	{
+		camera.updateCameraPosition(glm::normalize(dir));
+	}
 }
 
 void Game::Render()
 {
 	glClearColor(0.2f, 0.2f, 0.4f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+	glEnable(GL_CLIP_DISTANCE0);
 	glUseProgram(basic_shader_program);
 	glBindVertexArray(VAO);
+	glUniformMatrix4fv(glGetUniformLocation(basic_shader_program, "projection_matrix"), 1, false, glm::value_ptr(projection_matrix));
+	glUniformMatrix4fv(glGetUniformLocation(basic_shader_program, "view_matrix"), 1, false, glm::value_ptr(camera.getViewMatrix()));
+	glUniformMatrix4fv(glGetUniformLocation(basic_shader_program, "transformation_matrix"), 1, false, glm::value_ptr(transformation_matrix));
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 
 	SDL_GL_SwapWindow(window);
-	//SDL_RenderPresent(renderer);
 }
 
 void Game::glInfo()
@@ -132,10 +182,47 @@ void Game::initBasicProgram()
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
+void Game::initKeyboardState()
+{
+	keyboard_state[SDLK_w] = false;
+	keyboard_state[SDLK_a] = false;
+	keyboard_state[SDLK_s] = false;
+	keyboard_state[SDLK_d] = false;
+}
+
+void Game::processKeyEvent(Uint8 key, bool key_down)
+{
+	if (keyboard_state.find(key) != keyboard_state.end()) 
+	{
+		keyboard_state[key] = key_down;
+	}
+}
+//TODO fix bug with movement and pitch yaw
+void Game::mouseMoveEvent(SDL_MouseMotionEvent event)
+{
+	if (first_mouse)
+	{
+		lastX = event.x;
+		lastY = event.y;
+		first_mouse = false;
+	}
+
+	float xoffset = event.x - lastX;
+	float yoffset = event.y - lastY;
+	lastX = event.x;
+	lastY = event.y;
+
+	float sensitivity = 0.2f;
+	xoffset *= sensitivity;
+	yoffset *= sensitivity;
+
+	camera.updatePitchYaw(xoffset, yoffset);
+}
+
 void Game::Quit()
 {
 	std::cout << "Quit Game" << std::endl;
-	SDL_DestroyRenderer(renderer);
+	//SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
 	SDL_Quit();
 }

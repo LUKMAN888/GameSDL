@@ -13,10 +13,10 @@ const bool FULLSCREEN = false;
 
 int main(int argc, char* argv[])
 {
-    game = new Game();
-    game->Init(TITLE, XPOS, YPOS, WIDTH, HEIGHT, FULLSCREEN);
+    game = new Game(TITLE, XPOS, YPOS, WIDTH, HEIGHT, FULLSCREEN);
+    //game->Init();
 
-    while (game->running()) {
+    while (game->Running()) {
         game->Event();
         game->Update();
         game->Render();
