@@ -30,7 +30,8 @@ void Camera::updateCameraPosition(glm::vec2 dir)
     camera_pos += dir.x  * camera_direction * 0.05f;
     camera_pos += dir.y  * glm::normalize(glm::cross(camera_direction, camera_up)) * 0.05f;
     calculateViewMatrx();
-    std::cout << camera_pos.x << ", " << camera_pos.z << std::endl;
+    //std::cout << glm::normalize(glm::cross(camera_direction, camera_up)).x << ", " << glm::normalize(glm::cross(camera_direction, camera_up)).y << ", " << glm::normalize(glm::cross(camera_direction, camera_up)).z << std::endl;
+    std::cout << camera_pos.x << ", " << camera_pos.z << ", dirx: " << dir.x << " , diry: " << dir.y << std::endl;
 }
 
 void Camera::calculateViewMatrx()
@@ -46,14 +47,14 @@ void Camera::calculateViewMatrx()
 void Camera::calculateCameraTarget()
 {
     camera_target.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-    camera_target.y = sin(glm::radians(pitch));
+    camera_target.y = -sin(glm::radians(pitch));
     camera_target.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
     camera_target = glm::normalize(camera_target);
 }
 
 void Camera::calculateCameraDirection()
 {
-    camera_direction = glm::normalize(camera_pos - camera_target);
+    camera_direction = camera_target;
 }
 
 void Camera::calculateRightVector()
